@@ -29,8 +29,12 @@ class ProgCalc:
         self.in_binsep = Combo(self.top_box, grid=[0, 2], options=["4", "8", "16", "32"], command=self.process_binsep, selected="8")
 
         # Prepare the waffle list
-        self.waffles = []
-        self.boxes = []
+        self.waffle_list = []
+        self.box_list = []
+        self.text_list = []
+
+        self.append_wb(4)
+        self.append_tx(self.bin_sep)
 
         # Read the worksheets in the input dictionary and create the list
         self.in_excel = openpyxl.load_workbook(filename = '/home/andreic/workspace/py_progcalc/mpc831x.xlsx', read_only=True)
@@ -43,6 +47,32 @@ class ProgCalc:
         self.input.focus()
         self.app.display()
 
+    def append_wb(self, number):
+        last_waffle = len(self.waffle_list)
+        for i in range(0, 2* number, 2):
+            w = Waffle(self.bottom_box, height=self.bin_sep, width=1, grid=[last_waffle + i, 0])
+            w.hide()
+            w.when_clicked = self.process_waffle
+            self.waffle_list.append(w)
+
+            b = Box(self.bottom_box, grid=[i + 1, 0])
+            b.hide()
+            self.box_list.append(b)
+
+    def append_tx(self, number):
+        for i in range(0, len(self.box_list)):
+            try:
+                tmp = self.text_list[i]
+            except:
+                tmp = []
+
+            for j in range(0, self.bin_sep):
+                tx = Text(self.box_list[i])
+                tx.hide()
+                tx.size = 14 # perfect size for all variants
+                tmp.append(tx)
+            self.text_list.append(tmp)
+
     def process_input(self, inp):
         try:
             self.value = int(self.input.value, 0)
@@ -52,7 +82,19 @@ class ProgCalc:
             return
 
     def process_binsep(self, opt):
+        # If binsep is increased, add more tx fields
+        # No need to erase them, since they are hidden
+        if int(opt) > self.bin_sep:
+            self.append_tx(int(opt) - self.bin_sep)
+
         self.bin_sep = int(opt)
+
+        for w in self.waffle_list:
+            w.height = self.bin_sep
+        for tx in self.text_list:
+            for t in tx:
+                t.hide()
+
         self.refresh_all()
 
     def process_waffle(self, event_data):
@@ -62,7 +104,10 @@ class ProgCalc:
 
         # Get WafflePixel based on calculation above - reversed to take into account multiple waffles
         idx = 0
-        for w in reversed(self.waffles):
+        for w in reversed(self.waffle_list):
+            # Skip over invisible waffles
+            if w.visible == False:
+                continue
             if event_data.widget == w:
                 break
             idx += 1
@@ -79,6 +124,8 @@ class ProgCalc:
 
     def process_reglist(self, selected):
         if selected == "OFF":
+            for b in self.box_list:
+                b.hide()
             self.bit_map = {}
             self.refresh_all()
             return
@@ -141,48 +188,46 @@ class ProgCalc:
         self.out_bin.value = outstring
 
     def display_waffle(self):
-        # Clear previous waffles in case the number changes
-        for w in self.waffles:
-            w.hide()
-            del w
-        del self.waffles
-        self.waffles = []
-
-        for b in self.boxes:
-            b.hide()
-            del b
-        del self.boxes
-        self.boxes = []
-
         # Display new ones, based on the binary representation of the number
         idx = 0
         x_coord = 0
+
+        # Dinamically add waffles if needed
+        no_waffles = len(self.out_bin.value.split(" "))
+        if no_waffles > len(self.waffle_list):
+            print("Adding waffles", no_waffles - len(self.waffle_list))
+            self.append_wb(no_waffles - len(self.waffle_list))
+
         for elem in self.out_bin.value.split(" "):
             # Somehow it gets a empty element, fix this
             if elem == "":
                 break
 
-            w = Waffle(self.bottom_box, height=len(elem), width= 1, grid = [x_coord, 0])
-            w.when_clicked = self.process_waffle
+            # Get the waffle
+            w = self.waffle_list[x_coord]
+            print(x_coord)
+            w.show() # Display it
             if len(self.bit_map) != 0:
-                b = Box(self.bottom_box, grid = [x_coord + 1, 0])
-                self.boxes.append(b)
-                tx = Text(b, grid = [x_coord + 1, 0], height="fill", width="fill", size=16, text="\n")
-
+                b = self.box_list[x_coord]
+                b.show()
+                txlist = self.text_list[x_coord]
             # Set the individual pixel
-            y_coord = 0
             for i in range(0, len(elem)):
-                wp = w.pixel(0, i)
                 if len(self.bit_map) != 0:
-                    tx.value += self.bit_map[idx] + "\n"
-                idx += 1
+                    txlist[i].show()
+                    txlist[i].value = self.bit_map[idx]
+                    idx += 1
+                wp = w.pixel(0, i)
                 if elem[i] == "1":
                     wp.color = "blue"
+                else:
+                    wp.color = "white"
 
-            x_coord += 2
+            x_coord += 1
 
-            self.waffles.append(w)
-
+        for i in range(x_coord, len(self.waffle_list)):
+            self.waffle_list[i].hide()
+            self.box_list[i].hide()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Special calculator that interprets registers")
