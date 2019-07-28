@@ -1,5 +1,5 @@
 import argparse
-from guizero import App, TextBox, Text, Combo, Waffle, Box, ListBox
+from guizero import App, TextBox, Text, Combo, Waffle, Box, ListBox, Window
 import openpyxl
 
 
@@ -8,11 +8,15 @@ class ProgCalc:
         self.bin_sep = 8
         self.value = 0
         self.bit_map = {}
+        self.bit_descr = {}
 
         self.app = App(layout="grid")
         self.top_box = Box(self.app, layout = "grid", grid = [0, 0])
         self.bottom_box = Box(self.app, layout = "grid", grid = [0, 1])
         self.right_box = Box(self.app, grid = [1, 0, 1, 2])
+
+        self.window = Window(self.app, width=250, height=150, visible=False)
+        self.description = Text(self.window)
 
         # Create the text field to enter data
         self.input = TextBox(self.top_box, width=25, grid=[0,0,2,1], command=self.process_input)
@@ -70,8 +74,21 @@ class ProgCalc:
                 tx = Text(self.box_list[i])
                 tx.hide()
                 tx.size = 14 # perfect size for all variants
+                tx.when_mouse_enters = self.show_description
+                tx.when_mouse_leaves = self.hide_description
                 tmp.append(tx)
             self.text_list.append(tmp)
+
+    def show_description(self, event_data):
+        name = event_data.widget.value
+        for elem in self.bit_map:
+            if self.bit_map[elem] == name:
+                self.description.value = self.bit_descr[elem]
+                break
+        self.window.show()
+
+    def hide_description(self, event_data):
+        self.window.hide()
 
     def process_input(self, inp):
         try:
@@ -145,6 +162,7 @@ class ProgCalc:
             try:
                 bit = int(bits)
                 self.bit_map[bit] = name
+                self.bit_descr[bit] = descr
             except ValueError:
                 if bits == "Bits":
                     continue
@@ -153,6 +171,7 @@ class ProgCalc:
                     interval = bits.split("-")
                     for i in range(int(interval[0]), int(interval[1]) + 1):
                         self.bit_map[i] = name
+                        self.bit_descr[i] = descr
         self.refresh_all()
 
     def refresh_all(self):
@@ -195,7 +214,6 @@ class ProgCalc:
         # Dinamically add waffles if needed
         no_waffles = len(self.out_bin.value.split(" "))
         if no_waffles > len(self.waffle_list):
-            print("Adding waffles", no_waffles - len(self.waffle_list))
             self.append_wb(no_waffles - len(self.waffle_list))
 
         for elem in self.out_bin.value.split(" "):
@@ -205,7 +223,6 @@ class ProgCalc:
 
             # Get the waffle
             w = self.waffle_list[x_coord]
-            print(x_coord)
             w.show() # Display it
             if len(self.bit_map) != 0:
                 b = self.box_list[x_coord]
