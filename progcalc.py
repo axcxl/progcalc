@@ -27,7 +27,6 @@ class ProcCalc:
         # Prepare the waffle list
         self.waffles = []
 
-
         self.input.focus()
         self.app.display()
 
@@ -35,15 +34,13 @@ class ProcCalc:
         try:
             self.value = int(self.input.value, 0)
 
-            self.display_bin()
-            self.display_hex()
-            self.display_waffle()
+            self.refresh_all()
         except ValueError:
             return
 
     def process_binsep(self, opt):
         self.bin_sep = int(opt)
-        self.display_bin()
+        self.refresh_all()
 
     def process_waffle(self, event_data):
         # Not sure if this is the best way, but it works
@@ -64,9 +61,19 @@ class ProcCalc:
         else:
             self.value |= (1 << bit)
         # Refresh display
-        self.display_bin()
+        self.refresh_all()
+
+    def refresh_all(self):
+        if "0x" in self.input.value:
+            self.input.value = hex(self.value)
+        else:
+            self.input.value = str(self.value)
+
+        # TODO: improve?
         self.display_hex()
+        self.display_bin()
         self.display_waffle()
+
 
     def display_hex(self):
         self.out_hex.value = hex(self.value)
