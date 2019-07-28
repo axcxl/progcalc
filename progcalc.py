@@ -102,7 +102,8 @@ class ProgCalc:
                 if bits == "Bits":
                     continue
                 else:
-                    interval = bits.split("–")
+                    bits = str.replace(bits, "–", "-")
+                    interval = bits.split("-")
                     for i in range(int(interval[0]), int(interval[1]) + 1):
                         self.bit_map[i] = name
         self.refresh_all()
