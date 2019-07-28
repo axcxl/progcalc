@@ -1,14 +1,18 @@
-from guizero import App, TextBox, Text, Combo, Waffle, Box, PushButton
+import argparse
+from guizero import App, TextBox, Text, Combo, Waffle, Box, ListBox
+import openpyxl
 
-class ProcCalc:
-    def __init__(self):
+
+class ProgCalc:
+    def __init__(self, input_excel_db):
         self.bin_sep = 8
         self.value = 0
+        self.bit_map = {}
 
         self.app = App(layout="grid")
         self.top_box = Box(self.app, layout = "grid", grid = [0, 0])
         self.bottom_box = Box(self.app, layout = "grid", grid = [0, 1])
-        self.right_box = Box(self.app, layout = "grid", grid = [1, 0, 1, 2])
+        self.right_box = Box(self.app, grid = [1, 0, 1, 2])
 
         # Create the text field to enter data
         self.input = TextBox(self.top_box, width=25, grid=[0,0,2,1], command=self.process_input)
@@ -26,6 +30,15 @@ class ProcCalc:
 
         # Prepare the waffle list
         self.waffles = []
+        self.boxes = []
+
+        # Read the worksheets in the input dictionary and create the list
+        self.in_excel = openpyxl.load_workbook(filename = '/home/andreic/workspace/py_progcalc/mpc831x.xlsx', read_only=True)
+        self.in_regs = self.in_excel.sheetnames
+        self.in_regs.insert(0, "OFF")
+
+        # Display the list of registers
+        self.in_reglist = ListBox(self.right_box, items = self.in_regs, command=self.process_reglist)
 
         self.input.focus()
         self.app.display()
@@ -60,7 +73,38 @@ class ProcCalc:
             self.value &= ~(1 << bit)
         else:
             self.value |= (1 << bit)
+
         # Refresh display
+        self.refresh_all()
+
+    def process_reglist(self, selected):
+        if selected == "OFF":
+            self.bit_map = {}
+            self.refresh_all()
+            return
+
+        tmp = self.in_excel[selected]
+        self.bit_map = {}
+        for row in tmp.iter_rows():
+            try:
+                bits = row[0].value
+                if bits == None:
+                    break
+            except IndexError:
+                break
+            name = row[1].value
+            descr = row[2].value
+
+            try:
+                bit = int(bits)
+                self.bit_map[bit] = name
+            except ValueError:
+                if bits == "Bits":
+                    continue
+                else:
+                    interval = bits.split("–")
+                    for i in range(int(interval[0]), int(interval[1]) + 1):
+                        self.bit_map[i] = name
         self.refresh_all()
 
     def refresh_all(self):
@@ -73,7 +117,6 @@ class ProcCalc:
         self.display_hex()
         self.display_bin()
         self.display_waffle()
-
 
     def display_hex(self):
         self.out_hex.value = hex(self.value)
@@ -104,25 +147,46 @@ class ProcCalc:
         del self.waffles
         self.waffles = []
 
+        for b in self.boxes:
+            b.hide()
+            del b
+        del self.boxes
+        self.boxes = []
+
         # Display new ones, based on the binary representation of the number
+        idx = 0
         x_coord = 0
         for elem in self.out_bin.value.split(" "):
             # Somehow it gets a empty element, fix this
             if elem == "":
                 break
 
-            w = Waffle(self.bottom_box, height=len(elem), width= 1, grid = [x_coord, 3])
+            w = Waffle(self.bottom_box, height=len(elem), width= 1, grid = [x_coord, 0])
             w.when_clicked = self.process_waffle
-            x_coord += 1
+            if len(self.bit_map) != 0:
+                b = Box(self.bottom_box, grid = [x_coord + 1, 0])
+                self.boxes.append(b)
+                tx = Text(b, grid = [x_coord + 1, 0], height="fill", width="fill", size=16, text="\n")
 
-            # Set the individual pixels
+            # Set the individual pixel
+            y_coord = 0
             for i in range(0, len(elem)):
                 wp = w.pixel(0, i)
+                if len(self.bit_map) != 0:
+                    tx.value += self.bit_map[idx] + "\n"
+                idx += 1
                 if elem[i] == "1":
                     wp.color = "blue"
+
+            x_coord += 2
 
             self.waffles.append(w)
 
 
 if __name__ == "__main__":
-    pc = ProcCalc()
+    parser = argparse.ArgumentParser(description="Special calculator that interprets registers")
+    parser.add_argument('excel_db', help='Path to an excel database file')
+
+    args = parser.parse_args()
+
+    pc = ProgCalc(args.excel_db)
