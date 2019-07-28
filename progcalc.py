@@ -46,7 +46,27 @@ class ProcCalc:
         self.display_bin()
 
     def process_waffle(self, event_data):
-        print("CLICKED", event_data.widget, event_data.x, event_data.y)
+        # Not sure if this is the best way, but it works
+        waffleno = int(event_data.y / (event_data.widget.pixel_size + event_data.widget.pad))
+        waffleno = event_data.widget.height - (waffleno + 1)
+
+        # Get WafflePixel based on calculation above - reversed to take into account multiple waffles
+        idx = 0
+        for w in reversed(self.waffles):
+            if event_data.widget == w:
+                break
+            idx += 1
+
+        # See what bit needs to be changed
+        bit = self.bin_sep * idx + waffleno
+        if self.value & (1 << bit):
+            self.value &= ~(1 << bit)
+        else:
+            self.value |= (1 << bit)
+        # Refresh display
+        self.display_bin()
+        self.display_hex()
+        self.display_waffle()
 
     def display_hex(self):
         self.out_hex.value = hex(self.value)
@@ -57,7 +77,7 @@ class ProcCalc:
         n = len(outstring)
 
         # Add zeros at beginning if needed
-        while(n % self.bin_sep != 0):
+        while n % self.bin_sep != 0:
             outstring = "0" + outstring
             n += 1
 
@@ -70,15 +90,20 @@ class ProcCalc:
         self.out_bin.value = outstring
 
     def display_waffle(self):
-        # Clear previos waffles in case the number changes
+        # Clear previous waffles in case the number changes
         for w in self.waffles:
             w.hide()
             del w
+        del self.waffles
+        self.waffles = []
 
         # Display new ones, based on the binary representation of the number
         x_coord = 0
         for elem in self.out_bin.value.split(" "):
-            setattr(ProcCalc, "process_waffle_" + str(x_coord), self.process_waffle)
+            # Somehow it gets a empty element, fix this
+            if elem == "":
+                break
+
             w = Waffle(self.bottom_box, height=len(elem), width= 1, grid = [x_coord, 3])
             w.when_clicked = self.process_waffle
             x_coord += 1
@@ -90,9 +115,6 @@ class ProcCalc:
                     wp.color = "blue"
 
             self.waffles.append(w)
-
-
-
 
 
 if __name__ == "__main__":
