@@ -5,7 +5,8 @@ import openpyxl
 
 class ProgCalc:
     def __init__(self, input_excel_db):
-        self.bin_sep = 8
+        self.min_size = 32
+        self.no_bits = 8
         self.value = 0
         self.bit_map = {}
         self.bit_descr = {}
@@ -30,7 +31,7 @@ class ProgCalc:
         self.out_bin = Text(self.top_box, grid=[1, 2], text="0b<waiting for valid input>")
 
         # Display the binary value separation switch
-        self.in_binsep = Combo(self.top_box, grid=[0, 2], options=["4", "8", "16", "32"], command=self.process_binsep, selected="8")
+        self.in_minsize = Combo(self.top_box, grid=[0, 2], options=["32"], command=self.process_minsize, selected="32")
 
         # Prepare the waffle list
         self.waffle_list = []
@@ -38,7 +39,7 @@ class ProgCalc:
         self.text_list = []
 
         self.append_wb(4)
-        self.append_tx(self.bin_sep)
+        self.append_tx(self.no_bits)
 
         # Read the worksheets in the input dictionary and create the list
         self.in_excel = openpyxl.load_workbook(filename = '/home/andreic/workspace/py_progcalc/mpc831x.xlsx', read_only=True)
@@ -54,7 +55,7 @@ class ProgCalc:
     def append_wb(self, number):
         last_waffle = len(self.waffle_list)
         for i in range(0, 2* number, 2):
-            w = Waffle(self.bottom_box, height=self.bin_sep, width=1, grid=[last_waffle + i, 0])
+            w = Waffle(self.bottom_box, height=self.no_bits, width=1, grid=[last_waffle + i, 0])
             w.hide()
             w.when_clicked = self.process_waffle
             self.waffle_list.append(w)
@@ -70,7 +71,7 @@ class ProgCalc:
             except:
                 tmp = []
 
-            for j in range(0, self.bin_sep):
+            for j in range(0, self.no_bits):
                 tx = Text(self.box_list[i])
                 tx.hide()
                 tx.size = 14 # perfect size for all variants
@@ -98,19 +99,13 @@ class ProgCalc:
         except ValueError:
             return
 
-    def process_binsep(self, opt):
+    def process_minsize(self, opt):
         # If binsep is increased, add more tx fields
         # No need to erase them, since they are hidden
-        if int(opt) > self.bin_sep:
-            self.append_tx(int(opt) - self.bin_sep)
+        #if int(opt) > self.bin_sep:
+        #    self.append_tx(int(opt) - self.bin_sep)
 
-        self.bin_sep = int(opt)
-
-        for w in self.waffle_list:
-            w.height = self.bin_sep
-        for tx in self.text_list:
-            for t in tx:
-                t.hide()
+        self.min_size = int(opt)
 
         self.refresh_all()
 
@@ -130,7 +125,7 @@ class ProgCalc:
             idx += 1
 
         # See what bit needs to be changed
-        bit = self.bin_sep * idx + waffleno
+        bit = self.no_bits * idx + waffleno
         if self.value & (1 << bit):
             self.value &= ~(1 << bit)
         else:
@@ -194,15 +189,15 @@ class ProgCalc:
         n = len(outstring)
 
         # Add zeros at beginning if needed
-        while n % self.bin_sep != 0:
+        while n % self.min_size != 0:
             outstring = "0" + outstring
             n += 1
 
         # Split in groups of bin_sep
-        idx = self.bin_sep
+        idx = self.no_bits
         while idx <= n:
             outstring = outstring[0:idx] + " " + outstring[idx:]
-            idx += self.bin_sep + 1
+            idx += self.no_bits + 1
 
         self.out_bin.value = outstring
 
@@ -232,7 +227,7 @@ class ProgCalc:
             for i in range(0, len(elem)):
                 if len(self.bit_map) != 0:
                     txlist[i].show()
-                    txlist[i].value = self.bit_map[idx]
+                    txlist[i].value = self.bit_map[idx] + " " * 5
                     idx += 1
                 wp = w.pixel(0, i)
                 if elem[i] == "1":
