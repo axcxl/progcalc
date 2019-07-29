@@ -10,6 +10,7 @@ class ProgCalc:
         self.value = 0
         self.bit_map = {}
         self.bit_descr = {}
+        self.endianess = "big"
 
         self.app = App(layout="grid", height=350, width=550)
         self.top_box = Box(self.app, layout = "grid", grid = [0, 0])
@@ -20,20 +21,23 @@ class ProgCalc:
         self.description = Text(self.window)
 
         # Create the text field to enter data
-        self.input = TextBox(self.top_box, width=25, grid=[0,0,2,1], command=self.process_input)
+        self.input = TextBox(self.top_box, width=25, grid=[0,0,3,1], command=self.process_input)
         self.input.bg = "white"
         self.input.text_size = 16
 
         # Display the hex value
-        self.out_hex = Text(self.top_box, grid=[1,1], text="0x<waiting for valid input>")
+        self.out_hex = Text(self.top_box, grid=[2,1], text="0x<waiting for valid input>")
+        # Display the min number of bits selector
+        self.in_minsize = Combo(self.top_box, grid=[0, 1], options=["32"], command=self.process_minsize, selected="32")
+        # Endianess selector
+        self.in_endianess = Combo(self.top_box, grid=[1, 1], options=["little", "big"], command=self.process_endianess,
+                                  selected=self.endianess)
 
         # Display the binary value
         self.out_bin = Text(self.top_box, grid=[0, 2, 2, 1], size=17, text="0b<waiting for valid input>")
         # Display little number after the binary value
         self.out_num = Text(self.top_box, grid=[0, 3, 2, 1], size=7, text="")
 
-        # Display the min number of bits selector
-        self.in_minsize = Combo(self.top_box, grid=[0, 1], options=["32"], command=self.process_minsize, selected="32")
 
         # Prepare the waffle list
         self.waffle_list = []
@@ -100,6 +104,10 @@ class ProgCalc:
             self.refresh_all()
         except ValueError:
             return
+
+    def process_endianess(self, inp):
+        self.endianess = inp
+        self.refresh_all()
 
     def process_minsize(self, opt):
         # If binsep is increased, add more tx fields
@@ -201,7 +209,14 @@ class ProgCalc:
             tmp += outstring[idx]
             if (idx + 1) % self.no_bits == 0:
                 tmp += " "
-        outstring = tmp
+        outstring = tmp[:-1]
+
+        # Handles endianess
+        if self.endianess == "little":
+            tmp = ""
+            for elem in reversed(outstring.split(" ")):
+                tmp += elem + " "
+            outstring = tmp
 
         self.out_num.value = "0" + (" " * 140) + "31"
         self.out_bin.value = outstring
