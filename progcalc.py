@@ -1,4 +1,5 @@
 import argparse
+import os
 from guizero import App, TextBox, Text, Combo, Waffle, Box, ListBox, Window
 import openpyxl
 
@@ -42,7 +43,7 @@ class ProgCalc:
         self.append_tx(self.no_bits)
 
         # Read the worksheets in the input dictionary and create the list
-        self.in_excel = openpyxl.load_workbook(filename = '/home/andreic/workspace/py_progcalc/mpc831x.xlsx', read_only=True)
+        self.in_excel = openpyxl.load_workbook(filename = input_excel_db, read_only=True)
         self.in_regs = self.in_excel.sheetnames
         self.in_regs.insert(0, "OFF")
 
