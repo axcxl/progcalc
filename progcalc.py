@@ -1,5 +1,4 @@
 import argparse
-import os
 from guizero import App, TextBox, Text, Combo, Waffle, Box, ListBox, Window
 import openpyxl
 
@@ -12,7 +11,7 @@ class ProgCalc:
         self.bit_map = {}
         self.bit_descr = {}
 
-        self.app = App(layout="grid")
+        self.app = App(layout="grid", height=350, width=550)
         self.top_box = Box(self.app, layout = "grid", grid = [0, 0])
         self.bottom_box = Box(self.app, layout = "grid", grid = [0, 1])
         self.right_box = Box(self.app, grid = [1, 0, 1, 2])
@@ -26,13 +25,15 @@ class ProgCalc:
         self.input.text_size = 16
 
         # Display the hex value
-        self.out_hex = Text(self.top_box, grid=[0,1,2,1], text="0x<waiting for valid input>")
+        self.out_hex = Text(self.top_box, grid=[1,1], text="0x<waiting for valid input>")
 
         # Display the binary value
-        self.out_bin = Text(self.top_box, grid=[1, 2], text="0b<waiting for valid input>")
+        self.out_bin = Text(self.top_box, grid=[0, 2, 2, 1], size=17, text="0b<waiting for valid input>")
+        # Display little number after the binary value
+        self.out_num = Text(self.top_box, grid=[0, 3, 2, 1], size=7, text="")
 
-        # Display the binary value separation switch
-        self.in_minsize = Combo(self.top_box, grid=[0, 2], options=["32"], command=self.process_minsize, selected="32")
+        # Display the min number of bits selector
+        self.in_minsize = Combo(self.top_box, grid=[0, 1], options=["32"], command=self.process_minsize, selected="32")
 
         # Prepare the waffle list
         self.waffle_list = []
@@ -194,12 +195,15 @@ class ProgCalc:
             outstring = "0" + outstring
             n += 1
 
-        # Split in groups of bin_sep
-        idx = self.no_bits
-        while idx <= n:
-            outstring = outstring[0:idx] + " " + outstring[idx:]
-            idx += self.no_bits + 1
+        # Split in groups of no_bits
+        tmp = ""
+        for idx in range(0, len(outstring)):
+            tmp += outstring[idx]
+            if (idx + 1) % self.no_bits == 0:
+                tmp += " "
+        outstring = tmp
 
+        self.out_num.value = "0" + (" " * 140) + "31"
         self.out_bin.value = outstring
 
     def display_waffle(self):
