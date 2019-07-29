@@ -100,7 +100,6 @@ class ProgCalc:
     def process_input(self, inp):
         try:
             self.value = int(self.input.value, 0)
-
             self.refresh_all()
         except ValueError:
             return
@@ -110,13 +109,7 @@ class ProgCalc:
         self.refresh_all()
 
     def process_minsize(self, opt):
-        # If binsep is increased, add more tx fields
-        # No need to erase them, since they are hidden
-        #if int(opt) > self.bin_sep:
-        #    self.append_tx(int(opt) - self.bin_sep)
-
         self.min_size = int(opt)
-
         self.refresh_all()
 
     def process_waffle(self, event_data):
@@ -247,7 +240,7 @@ class ProgCalc:
             for i in range(0, len(elem)):
                 if len(self.bit_map) != 0:
                     txlist[i].show()
-                    txlist[i].value = self.bit_map[idx] + " " * 5
+                    txlist[i].value = str(idx) + ": " + self.bit_map[idx] + " " * 5
                     idx += 1
                 wp = w.pixel(0, i)
                 if elem[i] == "1":
